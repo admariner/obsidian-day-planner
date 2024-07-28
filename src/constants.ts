@@ -16,8 +16,8 @@ export const clockKey = "clocked";
 export const clockFormat = "YYYY-MM-DDTHH:mm:ss";
 export const reQueryAfterMillis = 200;
 export const icalRefreshIntervalMillis = 5 * 60 * 1000;
-export const unscheduledTasksMaxHeight = 300;
-export const unscheduledTasksMinHeight = 50;
+
+export const noTitle = "(No title)";
 
 export const supportBanner = `🪲 [Report bugs and suggest features](https://github.com/ivan-lednev/obsidian-day-planner/issues)<br>
 ❓ [Ask questions](https://github.com/ivan-lednev/obsidian-day-planner/discussions/new?category=q-a)<br>

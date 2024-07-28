@@ -18,10 +18,10 @@
   import { Writable } from "svelte/store";
 
   import { dateRangeContextKey, obsidianContext } from "../../constants";
+  import { isToday } from "../../global-store/current-time";
   import { settings } from "../../global-store/settings";
   import type { ObsidianContext } from "../../types";
   import { createDailyNoteIfNeeded } from "../../util/daily-notes";
-  import { isToday } from "../../util/moment";
   import { useDataviewSource } from "../hooks/use-dataview-source";
 
   import ControlButton from "./control-button.svelte";
@@ -64,23 +64,18 @@
   async function goBack() {
     const previousDay = $dateRange[0].clone().subtract(1, "day");
 
-    const previousNote = await createDailyNoteIfNeeded(previousDay);
-    await obsidianFacade.openFileInEditor(previousNote);
-
     $dateRange = [previousDay];
   }
 
   async function goForward() {
     const nextDay = $dateRange[0].clone().add(1, "day");
 
-    const nextNote = await createDailyNoteIfNeeded(nextDay);
-    await obsidianFacade.openFileInEditor(nextNote);
-
     $dateRange = [nextDay];
   }
 
   async function goToToday() {
     const noteForToday = await createDailyNoteIfNeeded(window.moment());
+
     await obsidianFacade.openFileInEditor(noteForToday);
   }
 
@@ -128,7 +123,7 @@
     </ControlButton>
 
     <ControlButton
-      --control-button-border={isToday($dateRange[0])
+      --control-button-border={$isToday($dateRange[0])
         ? "1px solid var(--color-accent)"
         : "none"}
       label="Go to file"

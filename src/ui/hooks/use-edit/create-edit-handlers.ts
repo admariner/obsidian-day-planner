@@ -47,6 +47,7 @@ export function createEditHandlers({
     await obsidianFacade.revealLineInFile(path, line);
   }
 
+  // todo: remove
   function handleGripMouseDown(task: PlacedTask, mode: EditMode) {
     startEdit({ task, mode, day });
   }
@@ -83,3 +84,5 @@ export function createEditHandlers({
     handleUnscheduledTaskGripMouseDown,
   };
 }
+
+export type EditHandlers = ReturnType<typeof createEditHandlers>;
