@@ -8,7 +8,7 @@ import { getDaysInRange, strictParse } from "../../util/moment";
 import { createAppSlice } from "../create-app-slice";
 import type { AppListenerEffect } from "../store";
 
-interface TaskEntry {
+export interface TaskEntry {
   id: string;
   text: string;
   position: Pos;
@@ -179,37 +179,12 @@ export const trackerSlice = createAppSlice({
 
           return logEntryToLocalTask(logEntry, taskEntry);
         }),
-    selectRecentClocks: (state) => {
-      const taskEntryIdToLatestLogRecord = Object.values(state.logEntries.byId)
-        .flat()
-        .filter((it): it is LogEntry & { end: string } => it.end !== undefined)
-        .toSorted((a, b) => Date.parse(b.end) - Date.parse(a.end))
-        .reduce<Map<string, LogEntry>>((result, logEntry) => {
-          if (result.has(logEntry.parent)) {
-            return result;
-          }
-
-          result.set(logEntry.parent, logEntry);
-
-          return result;
-        }, new Map());
-
-      return [...taskEntryIdToLatestLogRecord].map(
-        ([taskEntryId, logEntry]) => {
-          const taskEntry = state.taskEntries.byId[taskEntryId];
-
-          isNotVoid(taskEntry, "Inconsistent store state");
-
-          return logEntryToLocalTask(logEntry, taskEntry);
-        },
-      );
-    },
     selectLogEntriesByDay: (state) => state.logEntries.byDay,
     selectLogEntriesById: (state) => state.logEntries.byId,
   },
 });
 
-function logEntryToLocalTask(logEntry: LogEntry, taskEntry: TaskEntry) {
+export function logEntryToLocalTask(logEntry: LogEntry, taskEntry: TaskEntry) {
   return {
     text: taskEntry.text,
     location: { path: taskEntry.path, position: taskEntry.position },
@@ -226,7 +201,6 @@ export const { filesIndexed, indexRequested, fileDeleted } =
 export const {
   selectEntriesForPath,
   selectActiveClocks,
-  selectRecentClocks,
   selectLogEntriesByDay,
   selectLogEntriesById,
 } = trackerSlice.selectors;
@@ -311,7 +285,7 @@ export function createIndexListener(props: {
     });
   }
 
-  async function parseFile(path: string) {
+  async function indexFile(path: string) {
     const cache = metadataCache.getCache(path);
 
     const tasks = cache?.listItems?.filter(isTaskCache);
@@ -343,12 +317,12 @@ export function createIndexListener(props: {
     };
   }
 
-  return async (action, listenerApi) => {
+  return async function onIndexRequested(action, listenerApi) {
     const paths = action.payload;
 
     const normalizedEntriesForPaths = paths.map(async (path) => {
       try {
-        const normalizedEntries = await parseFile(path);
+        const normalizedEntries = await indexFile(path);
 
         return {
           path,

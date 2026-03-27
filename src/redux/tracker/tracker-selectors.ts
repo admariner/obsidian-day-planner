@@ -6,7 +6,12 @@ import { strictParse } from "../../util/moment";
 import { clamp } from "../../util/task-utils";
 import { createAppSelector } from "../create-app-selector";
 
-import { selectLogEntriesByDay, selectLogEntriesById } from "./tracker-slice";
+import {
+  logEntryToLocalTask,
+  selectLogEntriesByDay,
+  selectLogEntriesById,
+} from "./tracker-slice";
+import type { LogEntry } from "./tracker-slice";
 
 export const selectLogEntriesForDay = createAppSelector(
   [
@@ -55,5 +60,33 @@ export const selectLogEntriesForDay = createAppSelector(
     );
 
     return addHorizontalPlacing(inflatedTimeBlocksWithoutActiveClocks);
+  },
+);
+
+export const selectRecentClocks = createAppSelector(
+  [
+    (state) => state.tracker.logEntries.byId,
+    (state) => state.tracker.taskEntries.byId,
+  ],
+  (logEntriesById, taskEntriesById) => {
+    const taskEntryIdToLatestLogRecord = Object.values(logEntriesById)
+      .flat()
+      .filter((it): it is LogEntry & { end: string } => it.end !== undefined)
+      .toSorted((a, b) => Date.parse(b.end) - Date.parse(a.end))
+      .reduce<Map<string, LogEntry>>((result, logEntry) => {
+        if (result.has(logEntry.parent)) {
+          return result;
+        }
+
+        return result.set(logEntry.parent, logEntry);
+      }, new Map());
+
+    return [...taskEntryIdToLatestLogRecord].map(([taskEntryId, logEntry]) => {
+      const taskEntry = taskEntriesById[taskEntryId];
+
+      isNotVoid(taskEntry, "Inconsistent store state");
+
+      return logEntryToLocalTask(logEntry, taskEntry);
+    });
   },
 );

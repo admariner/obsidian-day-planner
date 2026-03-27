@@ -3,7 +3,7 @@
   import { isNotVoid } from "typed-assert";
 
   import { getObsidianContext } from "../../context/obsidian-context";
-  import { selectRecentClocks } from "../../redux/tracker/tracker-slice";
+  import { selectRecentClocks } from "../../redux/tracker/tracker-selectors";
   import type { LocalTask } from "../../task-types";
   import { createRecentClockMenu } from "../recent-clock-menu";
 
