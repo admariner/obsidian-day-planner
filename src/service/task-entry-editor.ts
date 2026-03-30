@@ -1,7 +1,7 @@
 import { isNotVoid } from "typed-assert";
 
-import { selectListPropsForLocation } from "../redux/dataview/dataview-slice";
 import type { AppStore } from "../redux/store";
+import { selectListPropsPosition } from "../redux/tracker/tracker-slice";
 import { locToEditorPosition } from "../util/editor";
 import {
   addOpenClock,
@@ -13,7 +13,8 @@ import {
 } from "../util/props";
 import { withNotice } from "../util/with-notice";
 
-import { DataviewFacade } from "./dataview-facade";
+import type { ListPropsParser } from "./list-props-parser";
+import { MetadataCacheFacade } from "./metadata-cache-facade";
 import type { VaultFacade } from "./vault-facade";
 import { WorkspaceFacade } from "./workspace-facade";
 
@@ -25,20 +26,21 @@ export class TaskEntryEditor {
       editFn: (props: Props) => Props;
     }) => {
       const { path, line, editFn } = props;
-      const sTask = this.dataviewFacade.getTaskAtLine({ path, line });
-      const listPropsForLine = this.getListProps({ path, line });
+      const listItem = this.metadataCacheFacade.getListItem(path, line);
 
-      isNotVoid(sTask, `No task found: ${path}:${line}`);
+      const listPropsForLine = await this.findListProps(path, line);
+
+      isNotVoid(listItem, `No task found: ${path}:${line}`);
       isNotVoid(listPropsForLine, `No list props found: ${path}:${line}`);
 
-      const updatedProps = editFn(listPropsForLine.listPropsForLine);
+      const updatedProps = editFn(listPropsForLine.parsed);
       const indented = toIndentedMarkdown(
         updatedProps,
-        sTask.position.start.col,
+        listItem.position.start.col,
       );
 
       await this.vaultFacade.editFile(
-        sTask.path,
+        path,
         (contents) =>
           contents.slice(0, listPropsForLine.position.start.offset) +
           indented +
@@ -47,14 +49,14 @@ export class TaskEntryEditor {
     },
   );
 
-  clockInUnderCursor = withNotice(() => {
-    this.updateListPropsUnderCursor((props) =>
+  clockInUnderCursor = withNotice(async () => {
+    await this.updateListPropsUnderCursor((props) =>
       props ? addOpenClock(props) : createPropsWithOpenClock(),
     );
   });
 
-  clockOutUnderCursor = withNotice(() => {
-    this.updateListPropsUnderCursor((props) => {
+  clockOutUnderCursor = withNotice(async () => {
+    await this.updateListPropsUnderCursor((props) => {
       if (!props) {
         throw new Error("There are no props under cursor");
       }
@@ -63,8 +65,8 @@ export class TaskEntryEditor {
     });
   });
 
-  cancelClockUnderCursor = withNotice(() => {
-    this.updateListPropsUnderCursor((props) => {
+  cancelClockUnderCursor = withNotice(async () => {
+    await this.updateListPropsUnderCursor((props) => {
       if (!props) {
         throw new Error("There are no props under cursor");
       }
@@ -77,77 +79,73 @@ export class TaskEntryEditor {
     private readonly getState: AppStore["getState"],
     private readonly workspaceFacade: WorkspaceFacade,
     private readonly vaultFacade: VaultFacade,
-    private readonly dataviewFacade: DataviewFacade,
+    private readonly metadataCacheFacade: MetadataCacheFacade,
+    private readonly listPropsParser: ListPropsParser,
   ) {}
 
-  getSTaskUnderCursorFromLastView = () => {
+  getListItemCacheUnderCursorFromLastView = () => {
     const location = this.workspaceFacade.getLastCaretLocation();
     const { path, line } = location;
-    const sTask = this.dataviewFacade.getTaskAtLine({ path, line });
+    const listItemCache = this.metadataCacheFacade.getListItem(path, line);
 
-    isNotVoid(sTask, "No task under cursor");
+    isNotVoid(listItemCache, "No task under cursor");
 
-    return { sTask, location };
+    return { listItemCache, location };
   };
 
-  private getListProps(location: { path: string; line: number }) {
-    const props = selectListPropsForLocation(
-      this.getState(),
-      location.path,
-      location.line,
-    );
+  private async findListProps(path: string, line: number) {
+    const position = selectListPropsPosition(this.getState(), path, line);
 
-    if (!props) {
+    if (!position) {
       return undefined;
     }
 
-    return {
-      listPropsForLine: props.parsed,
-      position: props.position,
-    };
+    const lineToListProps = await this.listPropsParser.parse(path);
+
+    const listPropsForLine = lineToListProps?.[line];
+
+    isNotVoid(
+      listPropsForLine,
+      `Expected to find list props at ${path}:${line}`,
+    );
+
+    return listPropsForLine;
   }
 
-  getSTaskWithListPropsUnderCursor() {
-    const { sTask, location } = this.getSTaskUnderCursorFromLastView();
-    const listProps = this.getListProps(location);
+  private async updateListPropsUnderCursor(updateFn: (props?: Props) => Props) {
+    const {
+      listItemCache,
+      location: { path, line },
+    } = this.getListItemCacheUnderCursorFromLastView();
 
-    if (!listProps) {
-      return sTask;
-    }
+    const foundListPropsForLine = await this.findListProps(path, line);
 
-    return {
-      ...sTask,
-      props: {
-        validated: { ...listProps.listPropsForLine },
-        position: listProps.position,
-      },
-    };
-  }
+    isNotVoid(foundListPropsForLine, `Expected list props at ${path}:${line}`);
 
-  private updateListPropsUnderCursor(updateFn: (props?: Props) => Props) {
-    const sTask = this.getSTaskWithListPropsUnderCursor();
-
-    const updatedProps = updateFn(sTask.props?.validated);
-    const indented = toIndentedMarkdown(updatedProps, sTask.position.start.col);
+    const updatedProps = updateFn(foundListPropsForLine.parsed);
+    const indented = toIndentedMarkdown(
+      updatedProps,
+      listItemCache.position.start.col,
+    );
 
     let result = indented + "\n";
 
     const view = this.workspaceFacade.getActiveMarkdownView();
 
-    if (sTask.props?.validated) {
+    if (foundListPropsForLine) {
       view.editor.replaceRange(
         indented,
-        locToEditorPosition(sTask.props.position.start),
-        locToEditorPosition(sTask.props.position.end),
+        locToEditorPosition(foundListPropsForLine.position.start),
+        locToEditorPosition(foundListPropsForLine.position.end),
       );
     } else {
       const afterFirstLine = {
-        line: sTask.position.start.line + 1,
+        line: listItemCache.position.start.line + 1,
         ch: 0,
       };
 
       const needsNewlineBeforeProps =
-        sTask.position.start.line === view.editor.lastLine();
+        listItemCache.position.start.line === view.editor.lastLine();
 
       if (needsNewlineBeforeProps) {
         result = "\n" + result;

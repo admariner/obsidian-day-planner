@@ -11,7 +11,6 @@ import {
 } from "../../src/redux/ical/ical-slice";
 import { initListenerMiddleware } from "../../src/redux/listener-middleware";
 import { makeStore, type RootState } from "../../src/redux/store";
-import { DataviewFacade } from "../../src/service/dataview-facade";
 import { ListPropsParser } from "../../src/service/list-props-parser";
 import { defaultSettingsForTests } from "../../src/settings";
 import { FakeMetadataCache, InMemoryVault } from "../test-utils";

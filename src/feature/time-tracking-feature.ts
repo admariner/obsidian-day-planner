@@ -41,7 +41,7 @@ export class TimeTrackingFeature {
     const { plugin, metadataCache, dispatch, vault } = this;
 
     plugin.registerEvent(
-      metadataCache.on("changed", (file, contents, cache) => {
+      metadataCache.on("changed", (file) => {
         dispatch(indexRequested([file.path]));
       }),
     );

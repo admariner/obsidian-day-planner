@@ -36,7 +36,7 @@ export class ListPropsParser {
     return this.getListPropsFromFile(contents, metadata);
   }
 
-  private getListPropsFromFile(fileText: string, metadata: CachedMetadata) {
+  getListPropsFromFile(fileText: string, metadata: CachedMetadata) {
     return metadata.listItems?.reduce<LineToListProps>((result, listItem) => {
       if (!listItem.task) {
         return result;

@@ -50,6 +50,7 @@ import { createSvelteSignalFromReduxStore } from "./redux/use-selector";
 import { DataviewFacade } from "./service/dataview-facade";
 import { TransactionWriter } from "./service/diff-writer";
 import { ListPropsParser } from "./service/list-props-parser";
+import { MetadataCacheFacade } from "./service/metadata-cache-facade";
 import { PeriodicNotes } from "./service/periodic-notes";
 import { TaskEntryEditor } from "./service/task-entry-editor";
 import { VaultFacade } from "./service/vault-facade";
@@ -84,6 +85,7 @@ export default class DayPlanner extends Plugin {
   private taskEntryEditor!: TaskEntryEditor;
   private vaultFacade!: VaultFacade;
   private transactionWriter!: TransactionWriter;
+  private metadataCacheFacade!: MetadataCacheFacade;
 
   async onload() {
     const { vault, metadataCache } = this.app;
@@ -105,6 +107,7 @@ export default class DayPlanner extends Plugin {
       this.periodicNotes,
     );
     this.dataviewFacade = new DataviewFacade(() => getAPI(this.app), vault);
+    this.metadataCacheFacade = new MetadataCacheFacade(metadataCache);
 
     const {
       store,
@@ -128,7 +131,8 @@ export default class DayPlanner extends Plugin {
       getState,
       this.workspaceFacade,
       this.vaultFacade,
-      this.dataviewFacade,
+      this.metadataCacheFacade,
+      listPropsParser,
     );
 
     this.register(() => {
@@ -150,7 +154,9 @@ export default class DayPlanner extends Plugin {
 
     const handleEditorMenu = createEditorMenuCallback({
       taskEntryEditor: this.taskEntryEditor,
-      plugin: this,
+      metadataCacheFacade: this.metadataCacheFacade,
+      metadataCache,
+      listPropsParser,
     });
 
     this.registerEvent(this.app.workspace.on("editor-menu", handleEditorMenu));
