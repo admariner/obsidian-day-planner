@@ -4,8 +4,6 @@ import { icalParseLowerLimit } from "../constants";
 import type { ReduxExtraArgument } from "../types";
 import { createBackgroundBatchScheduler } from "../util/scheduler";
 
-import { dataviewChange } from "./dataview/dataview-slice";
-import { createListPropsParseListener } from "./dataview/init-dataview-listeners";
 import { icalRefreshRequested } from "./ical/ical-slice";
 import {
   checkIcalEventsChanged,
@@ -49,11 +47,6 @@ export function initListenerMiddleware(props: { extra: ReduxExtraArgument }) {
     effect: createIcalParseListener({
       scheduler: icalParseScheduler,
     }),
-  });
-
-  listenerMiddleware.startListening({
-    actionCreator: dataviewChange,
-    effect: createListPropsParseListener({ listPropsParser }),
   });
 
   listenerMiddleware.startListening({

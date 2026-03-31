@@ -93,28 +93,12 @@ export function createEditHandlers({
     startEdit({ task: withAddedTime, mode: EditMode.DRAG });
   }
 
-  function handleSearchResultGripMouseDown(task: LocalTask) {
-    const dateTime = get(pointerDateTime).dateTime;
-
-    if (!dateTime) {
-      throw new Error("Day cannot be undefined on edit");
-    }
-
-    const withAddedTime = {
-      ...task,
-      startTime: dateTime,
-    };
-
-    startEdit({ task: withAddedTime, mode: EditMode.SCHEDULE_SEARCH_RESULT });
-  }
-
   return {
     handleGripMouseDown: handleResizerMouseDown,
     handleContainerMouseDown,
     handleResizerMouseDown,
     handleTaskMouseUp,
     handleUnscheduledTaskGripMouseDown,
-    handleSearchResultGripMouseDown,
   };
 }
 

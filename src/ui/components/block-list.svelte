@@ -1,4 +1,4 @@
-<script generics="T" lang="ts">
+<script generics="T extends { id?: string }" lang="ts">
   import type { Snippet } from "svelte";
   import { slide } from "svelte/transition";
 
@@ -14,7 +14,7 @@
     class="search-results-scroller"
     transition:slide={createSlide({ axis: "y" })}
   >
-    {#each list as foundTimeBlock}
+    {#each list as foundTimeBlock, index (foundTimeBlock.id || index)}
       {@render match(foundTimeBlock)}
     {/each}
   </div>

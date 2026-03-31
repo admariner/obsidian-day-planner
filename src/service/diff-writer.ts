@@ -240,18 +240,6 @@ function mapTaskDiffToUpdate(props: {
 
   if (type === "added") {
     if (task.location) {
-      if (mode === EditMode.SCHEDULE_SEARCH_RESULT) {
-        return {
-          type: "updated",
-          path: task.location.path,
-          range: {
-            start: task.location.position.start,
-            end: task.location.position.start,
-          },
-          contents: getFirstLine(taskTextWithUpdatedProps),
-        };
-      }
-
       return {
         type: "created",
         contents: taskTextWithUpdatedProps,

@@ -18,7 +18,7 @@ import { setUp } from "./integration/setup";
 import { getPathToDiff } from "./test-utils";
 
 describe("Log Records with indexes", () => {
-  test("Stores text, path, position for task entries", async () => {
+  test("Stores text, path, position, props position for task entries", async () => {
     const { getState } = await setUp();
 
     expect(
@@ -30,6 +30,10 @@ describe("Log Records with indexes", () => {
       {
         text: "- [ ] Task",
         position: {
+          start: expect.any(Object),
+          end: expect.any(Object),
+        },
+        propsPosition: {
           start: expect.any(Object),
           end: expect.any(Object),
         },

@@ -11,7 +11,6 @@ import {
   looseTimestampAtStartOfLineRegExp,
   obsidianBlockIdRegExp,
   scheduledPropRegExps,
-  shortScheduledPropRegExp,
   strictTimestampAnywhereInLineRegExp,
 } from "../regexp";
 import type { DayPlannerSettings } from "../settings";
@@ -36,7 +35,7 @@ import {
   minutesToMoment,
   minutesToMomentOfDay,
 } from "./moment";
-import { addTasksPluginProp, updateScheduledPropInText } from "./props";
+import { updateScheduledPropInText } from "./props";
 
 export function getEndMinutes(task: {
   startTime: Moment;
@@ -175,22 +174,10 @@ export function toString(task: WithTime<LocalTask>, mode: EditMode) {
     ? removeTimestamp(firstLineWithoutListTokens)
     : replaceOrPrependTimestamp(firstLineWithoutListTokens, updatedTimestamp);
 
-  let updatedFirstLineText = updateScheduledPropInText(
+  const updatedFirstLineText = updateScheduledPropInText(
     withUpdatedOrDeletedTimestamp,
     getDayKey(task.startTime),
   );
-
-  // todo: should not be conditional
-  // todo: remove the hack
-  if (
-    mode === EditMode.SCHEDULE_SEARCH_RESULT &&
-    !shortScheduledPropRegExp.test(updatedFirstLineText)
-  ) {
-    updatedFirstLineText = addTasksPluginProp(
-      updatedFirstLineText,
-      `⏳ ${task.startTime.format(defaultDayFormat)}`,
-    );
-  }
 
   const otherLines = getLinesAfterFirst(task.text);
 

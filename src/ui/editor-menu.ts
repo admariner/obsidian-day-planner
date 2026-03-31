@@ -1,44 +1,75 @@
-import type { Editor, Menu } from "obsidian";
+import type {
+  Editor,
+  MarkdownFileInfo,
+  MarkdownView,
+  Menu,
+  MetadataCache,
+} from "obsidian";
 
-import type DayPlanner from "../main";
-import type { STaskEditor } from "../service/stask-editor";
+import type { ListPropsParser } from "../service/list-props-parser";
+import type { MetadataCacheFacade } from "../service/metadata-cache-facade";
+import type { TaskEntryEditor } from "../service/task-entry-editor";
 import { isWithOpenClock } from "../util/props";
 
 export const createEditorMenuCallback =
-  (props: { sTaskEditor: STaskEditor; plugin: DayPlanner }) =>
-  (menu: Menu, editor: Editor) => {
-    const { sTaskEditor } = props;
+  (props: {
+    taskEntryEditor: TaskEntryEditor;
+    metadataCacheFacade: MetadataCacheFacade;
+    listPropsParser: ListPropsParser;
+    metadataCache: MetadataCache;
+  }) =>
+  async (menu: Menu, editor: Editor, info: MarkdownView | MarkdownFileInfo) => {
+    const {
+      taskEntryEditor,
+      metadataCacheFacade,
+      metadataCache,
+      listPropsParser,
+    } = props;
 
-    let sTask;
+    const path = info.file?.path;
 
-    try {
-      sTask = sTaskEditor.getSTaskWithListPropsUnderCursor();
-    } catch {
+    if (!path) {
       return;
     }
 
+    const line = editor.getCursor().line;
+    const fileCache = metadataCache.getCache(path);
+    const listItemCache = metadataCacheFacade.getListItem(path, line);
+
+    if (!fileCache || !listItemCache) {
+      return;
+    }
+
+    const contents = editor.getValue();
+    const propsForFile = listPropsParser.getListPropsFromFile(
+      contents,
+      fileCache,
+    );
+
+    const propsForLine = propsForFile?.[line];
+
     menu.addSeparator();
 
-    if (isWithOpenClock(sTask.props?.validated)) {
+    if (isWithOpenClock(propsForLine?.parsed)) {
       menu.addItem((item) => {
         item
           .setTitle("Clock out")
           .setIcon("square")
-          .onClick(() => sTaskEditor.clockOutUnderCursor());
+          .onClick(() => taskEntryEditor.clockOutUnderCursor());
       });
 
       menu.addItem((item) => {
         item
           .setTitle("Cancel clock")
           .setIcon("trash")
-          .onClick(() => sTaskEditor.cancelClockUnderCursor());
+          .onClick(() => taskEntryEditor.cancelClockUnderCursor());
       });
     } else {
       menu.addItem((item) => {
         item
           .setTitle("Clock in")
           .setIcon("play")
-          .onClick(() => sTaskEditor.clockInUnderCursor());
+          .onClick(() => taskEntryEditor.clockInUnderCursor());
       });
     }
   };

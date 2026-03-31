@@ -12,6 +12,7 @@ export interface TaskEntry {
   id: string;
   text: string;
   position: Pos;
+  propsPosition?: Pos;
   path: string;
   logEntries?: string[];
 }
@@ -179,6 +180,18 @@ export const trackerSlice = createAppSlice({
 
           return logEntryToLocalTask(logEntry, taskEntry);
         }),
+    selectListPropsPosition: (state, path: string, line: number) => {
+      const taskEntriesForFile = state.taskEntries.byPath[path]?.map(
+        (it) => state.taskEntries.byId[it],
+      );
+
+      const taskEntryAtLine = taskEntriesForFile?.find(
+        // todo: redux should not keep explicit undefined here
+        (it) => it?.position.start.line && it.position.start.line === line,
+      );
+
+      return taskEntryAtLine?.propsPosition;
+    },
     selectLogEntriesByDay: (state) => state.logEntries.byDay,
     selectLogEntriesById: (state) => state.logEntries.byId,
   },
@@ -203,6 +216,7 @@ export const {
   selectActiveClocks,
   selectLogEntriesByDay,
   selectLogEntriesById,
+  selectListPropsPosition,
 } = trackerSlice.selectors;
 
 type IndexRequested = ReturnType<typeof indexRequested>;
@@ -245,6 +259,7 @@ export function createIndexListener(props: {
         task,
         listItemText,
       );
+
       const taskEntryId = createId(path, task.position.start.line);
 
       const logEntries = listItemProps?.parsed.planner?.log?.map(
@@ -279,6 +294,7 @@ export function createIndexListener(props: {
         id: taskEntryId,
         text: firstLine,
         position: task.position,
+        propsPosition: listItemProps?.position,
         path,
         logEntries,
       };
