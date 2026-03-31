@@ -120,9 +120,7 @@ export class TaskEntryEditor {
 
     const foundListPropsForLine = await this.findListProps(path, line);
 
-    isNotVoid(foundListPropsForLine, `Expected list props at ${path}:${line}`);
-
-    const updatedProps = updateFn(foundListPropsForLine.parsed);
+    const updatedProps = updateFn(foundListPropsForLine?.parsed);
     const indented = toIndentedMarkdown(
       updatedProps,
       listItemCache.position.start.col,
